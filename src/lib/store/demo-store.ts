@@ -1,6 +1,6 @@
 import { MOCK_CATEGORIES, MOCK_CENTERS, MOCK_NEEDS } from "@/lib/mock/data";
 import { isSupabaseConfigured } from "@/lib/config/env";
-import { insertPledgeRemote, insertSosAlertRemote } from "@/lib/supabase/remote-data";
+import { insertSosAlertRemote } from "@/lib/supabase/remote-data";
 import { emitDonationAnnounced, emitStoreUpdate } from "./events";
 import { sanitizeMultiline, sanitizePhone, sanitizeText } from "@/lib/utils/sanitize";
 import { isActivePledge } from "@/lib/utils/pledges";
@@ -470,9 +470,40 @@ export async function addPledge(input: AddPledgeInput): Promise<DonationPledge> 
   const coords = resolvePledgeCoordinates(input);
 
   if (isSupabaseConfigured() && isBrowser()) {
-    const pledge = await insertPledgeRemote(input, donorName, coords);
+    const res = await fetch("/api/pledges", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...input,
+        donor_name: donorName,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      }),
+    });
+
+    const data = (await res.json()) as {
+      pledge?: DonationPledge;
+      error?: string;
+    };
+
+    if (!res.ok) {
+      throw new Error(data.error ?? "No se pudo confirmar la donación.");
+    }
+
+    if (!data.pledge) {
+      throw new Error("El servidor no devolvió la donación guardada.");
+    }
+
+    const center = getCenterById(input.center_id);
+    emitDonationAnnounced({
+      id: `donation-feed-${data.pledge.id}`,
+      donor_name: donorName,
+      items_description: data.pledge.items_description,
+      center_name: center?.name ?? "un centro de acopio",
+    });
+
     notify();
-    return pledge;
+    return data.pledge;
   }
 
   const pledges = getPledgesRaw();

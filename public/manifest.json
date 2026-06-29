@@ -3,7 +3,7 @@
   "name": "LatidosVE",
   "short_name": "LatidosVE",
   "description": "Mapa de solidaridad: dona insumos, encuentra centros de acopio y alertas SOS en Venezuela",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",

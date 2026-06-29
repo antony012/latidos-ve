@@ -9,6 +9,7 @@ import {
   User,
 } from "lucide-react";
 import { LogoBrand } from "@/components/brand/Logo";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { useAuth } from "@/contexts/auth-context";
 import { ROLES, type AppRole } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,7 @@ export function AppHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <InstallAppButton />
           {session ? (
             <>
               <div className="hidden items-center gap-2 sm:flex">
