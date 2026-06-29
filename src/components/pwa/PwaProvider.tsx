@@ -1,5 +1,6 @@
 "use client";
 
+import "@/lib/pwa/install-prompt-store";
 import { SerwistProvider } from "@serwist/turbopack/react";
 import { InstallPrompt } from "./InstallPrompt";
 

@@ -70,33 +70,6 @@ export function HomeMapView({
     router.push(`/centro/${center.id}`);
   };
 
-  const mapBlock = (
-    <div className="relative min-h-[min(52dvh,28rem)] min-w-0 flex-1 md:min-h-0">
-      {!sosBannerDismissed && (
-        <NearbySosAlerts
-          userPosition={position}
-          onDismiss={() => setSosBannerDismissed(true)}
-        />
-      )}
-
-      {loading ? (
-        <MapSkeleton />
-      ) : (
-        <MapLazy
-          centers={centers}
-          pledges={mapPledges}
-          sosAlerts={sosAlerts}
-          selectedCenterId={selectedCenter?.id}
-          centerMarkerStyle="building"
-          showRoutes
-          onCenterSelect={handleCenterSelect}
-        />
-      )}
-
-      <MapLegend />
-    </div>
-  );
-
   const mobileCentersStrip = (
     <div className="shrink-0 border-t bg-background md:hidden">
       <div className="flex items-center justify-between px-3 py-1.5">
@@ -128,7 +101,6 @@ export function HomeMapView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Título compacto solo móvil */}
       {!embedded && (
         <div className="border-b bg-muted/20 px-3 py-2 md:hidden">
           <p className="text-sm font-semibold">{APP_NAME}</p>
@@ -174,15 +146,9 @@ export function HomeMapView({
         </div>
       )}
 
-      {/* Móvil: mapa primero (más alto), lista abajo */}
-      <div className="flex min-h-0 flex-1 flex-col md:hidden">
-        {mapBlock}
-        {mobileCentersStrip}
-      </div>
-
-      {/* Escritorio: sidebar + mapa */}
-      <div className="hidden min-h-0 flex-1 overflow-hidden md:flex">
-        <aside className="w-72 shrink-0 flex-col border-r bg-background lg:flex xl:w-80">
+      {/* Un solo mapa: sidebar escritorio + strip móvil */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+        <aside className="hidden w-72 shrink-0 flex-col border-r bg-background md:flex xl:w-80">
           <div className="border-b px-4 py-3">
             <p className="text-sm font-medium">
               {loading ? "Cargando…" : `${centers.length} centros`}
@@ -210,7 +176,37 @@ export function HomeMapView({
                 ))}
           </div>
         </aside>
-        {mapBlock}
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="relative h-[min(52dvh,28rem)] min-h-[14rem] w-full shrink-0 md:h-auto md:min-h-0 md:flex-1">
+            {!sosBannerDismissed && (
+              <NearbySosAlerts
+                userPosition={position}
+                onDismiss={() => setSosBannerDismissed(true)}
+              />
+            )}
+
+            {loading ? (
+              <MapSkeleton className="absolute inset-0 h-full" />
+            ) : (
+              <div className="absolute inset-0">
+                <MapLazy
+                  centers={centers}
+                  pledges={mapPledges}
+                  sosAlerts={sosAlerts}
+                  selectedCenterId={selectedCenter?.id}
+                  centerMarkerStyle="building"
+                  showRoutes
+                  onCenterSelect={handleCenterSelect}
+                />
+              </div>
+            )}
+
+            <MapLegend />
+          </div>
+
+          {mobileCentersStrip}
+        </div>
       </div>
 
       {embedded && (

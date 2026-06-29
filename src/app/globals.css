@@ -135,6 +135,8 @@
 .leaflet-container {
   z-index: 0;
   font-family: inherit;
+  height: 100%;
+  width: 100%;
 }
 
 @keyframes sos-pulse {

@@ -59,6 +59,18 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__LATIDOS_DEFERRED_INSTALL__ = null;
+              window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();
+                window.__LATIDOS_DEFERRED_INSTALL__ = e;
+                window.dispatchEvent(new Event('latidosve:install-prompt-ready'));
+              });
+            `,
+          }}
+        />
         <PwaProvider>
           <AuthProvider>
             <PledgeTrackingProvider />

@@ -203,6 +203,37 @@ function createSosIcon() {
   });
 }
 
+function MapResizeHandler() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const refresh = () => {
+      map.invalidateSize();
+    };
+
+    refresh();
+    const raf = requestAnimationFrame(refresh);
+    const timer = window.setTimeout(refresh, 200);
+
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => refresh())
+        : null;
+    observer?.observe(container);
+
+    window.addEventListener("resize", refresh);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+      observer?.disconnect();
+      window.removeEventListener("resize", refresh);
+    };
+  }, [map]);
+
+  return null;
+}
+
 function MapController({
   selectedCenterId,
   centers,
@@ -339,6 +370,7 @@ export function Map({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <MapResizeHandler />
       <MapController selectedCenterId={selectedCenterId} centers={centers} />
       {centers.length === 1 && (
         <FitBounds centers={centers} pledges={pledges} />

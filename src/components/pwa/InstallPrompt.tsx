@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { Download, Share, X } from "lucide-react";
 import { APP_NAME } from "@/lib/constants/branding";
+import {
+  clearDeferredInstallPrompt,
+  getDeferredInstallPrompt,
+  onInstallPromptReady,
+  type BeforeInstallPromptEvent,
+} from "@/lib/pwa/install-prompt-store";
 import { Button } from "@/components/ui/button";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
 
 const DISMISS_KEY = "latidosve:install-dismissed";
 const DISMISS_DAYS = 7;
@@ -27,6 +28,11 @@ function isIos(): boolean {
   return /iphone|ipad|ipod/i.test(navigator.userAgent);
 }
 
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /android/i.test(navigator.userAgent);
+}
+
 function isDismissed(): boolean {
   try {
     const raw = localStorage.getItem(DISMISS_KEY);
@@ -39,65 +45,90 @@ function isDismissed(): boolean {
   }
 }
 
+type PromptMode = "native" | "ios" | "android-manual";
+
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
-  const [mode, setMode] = useState<"native" | "ios">("native");
+  const [mode, setMode] = useState<PromptMode>("native");
 
   useEffect(() => {
     if (isStandalone() || isDismissed()) return;
 
-    const showIosHint = () => {
-      if (!isIos() || isStandalone()) return;
-      setMode("ios");
-      setVisible(true);
-    };
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    const existing = getDeferredInstallPrompt();
+    if (existing) {
+      setDeferredPrompt(existing);
       setMode("native");
       setVisible(true);
-    };
+    }
 
-    window.addEventListener("beforeinstallprompt", handler);
+    const unsubscribe = onInstallPromptReady(() => {
+      const prompt = getDeferredInstallPrompt();
+      if (!prompt) return;
+      setDeferredPrompt(prompt);
+      setMode("native");
+      setVisible(true);
+    });
 
-    // iOS no dispara beforeinstallprompt — mostrar instrucciones tras un momento
-    const iosTimer = window.setTimeout(showIosHint, 2500);
+    const fallbackTimer = window.setTimeout(() => {
+      if (isStandalone() || isDismissed()) return;
+      if (getDeferredInstallPrompt()) return;
+
+      if (isIos()) {
+        setMode("ios");
+        setVisible(true);
+        return;
+      }
+
+      if (isAndroid()) {
+        setMode("android-manual");
+        setVisible(true);
+      }
+    }, 3000);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-      window.clearTimeout(iosTimer);
+      unsubscribe();
+      window.clearTimeout(fallbackTimer);
     };
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setVisible(false);
+    const prompt = deferredPrompt ?? getDeferredInstallPrompt();
+    if (!prompt) return;
+
+    try {
+      await prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === "accepted") {
+        setVisible(false);
+      }
+    } finally {
+      clearDeferredInstallPrompt();
+      setDeferredPrompt(null);
     }
-    setDeferredPrompt(null);
   };
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
     setVisible(false);
+    clearDeferredInstallPrompt();
     setDeferredPrompt(null);
   };
 
   if (!visible) return null;
 
+  const showNativeButton =
+    mode === "native" && (deferredPrompt ?? getDeferredInstallPrompt());
+
   return (
     <div className="fixed inset-x-3 bottom-[4.75rem] z-[2000] rounded-xl border bg-background p-4 shadow-lg sm:inset-x-auto sm:bottom-4 sm:right-4 sm:max-w-sm md:bottom-4">
       <div className="flex items-start gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          {mode === "ios" ? (
-            <Share className="size-5" />
-          ) : (
+          {mode === "native" ? (
             <Download className="size-5" />
+          ) : (
+            <Share className="size-5" />
           )}
         </div>
         <div className="min-w-0 flex-1">
@@ -107,6 +138,12 @@ export function InstallPrompt() {
               En Safari: toca <strong>Compartir</strong> abajo y luego{" "}
               <strong>Añadir a pantalla de inicio</strong>.
             </p>
+          ) : mode === "android-manual" ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              En Chrome: menú <strong>⋮</strong> arriba a la derecha →{" "}
+              <strong>Instalar aplicación</strong> o{" "}
+              <strong>Añadir a pantalla de inicio</strong>.
+            </p>
           ) : (
             <p className="mt-1 text-xs text-muted-foreground">
               Accede al mapa y centros de acopio como app, incluso sin conexión
@@ -114,7 +151,7 @@ export function InstallPrompt() {
             </p>
           )}
           <div className="mt-3 flex gap-2">
-            {mode === "native" && deferredPrompt && (
+            {showNativeButton && (
               <Button size="sm" onClick={() => void handleInstall()}>
                 Instalar app
               </Button>
