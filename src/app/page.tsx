@@ -9,7 +9,7 @@ export default function HomePage() {
       <PageHeader
         title="Mapa de solidaridad"
         description={`${APP_NAME}: centros de acopio, donaciones en camino y alertas SOS.`}
-        className="shrink-0 py-3 md:py-5"
+        className="hidden shrink-0 py-3 md:block md:py-5"
       />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <HomeMapView />

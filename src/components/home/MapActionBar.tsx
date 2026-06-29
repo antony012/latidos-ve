@@ -15,8 +15,8 @@ export function MapActionBar() {
 
   return (
     <>
-      <div className="shrink-0 border-b bg-background px-3 py-3">
-        <div className="mx-auto flex max-w-7xl gap-2.5 sm:gap-3">
+      <div className="shrink-0 border-b bg-background px-3 py-2 sm:py-3">
+        <div className="mx-auto flex max-w-7xl gap-2 sm:gap-3">
           {/* SOS — acción secundaria, ancho fijo táctil */}
           <button
             type="button"
@@ -49,7 +49,7 @@ export function MapActionBar() {
             </span>
           </button>
         </div>
-        <p className="mt-2 text-center text-[11px] text-muted-foreground sm:text-xs">
+        <p className="mt-1.5 hidden text-center text-[11px] text-muted-foreground sm:block sm:text-xs">
           Tu donación aparece en el mapa al confirmar · SOS alerta a quienes
           estén a 20 km
         </p>

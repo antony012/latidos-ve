@@ -18,10 +18,10 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { useLocationPermission } from "@/hooks/use-location-permission";
 import { useStoreSync } from "@/hooks/use-store-sync";
 import { useMapLiveData } from "@/hooks/use-map-live-data";
+import { APP_NAME } from "@/lib/constants/branding";
 import type { CenterWithStats } from "@/types";
 
 interface HomeMapViewProps {
-  /** Vista embebida en pestaña (sin navegación a detalle) */
   embedded?: boolean;
   showActionBar?: boolean;
 }
@@ -70,8 +70,72 @@ export function HomeMapView({
     router.push(`/centro/${center.id}`);
   };
 
+  const mapBlock = (
+    <div className="relative min-h-[min(52dvh,28rem)] min-w-0 flex-1 md:min-h-0">
+      {!sosBannerDismissed && (
+        <NearbySosAlerts
+          userPosition={position}
+          onDismiss={() => setSosBannerDismissed(true)}
+        />
+      )}
+
+      {loading ? (
+        <MapSkeleton />
+      ) : (
+        <MapLazy
+          centers={centers}
+          pledges={mapPledges}
+          sosAlerts={sosAlerts}
+          selectedCenterId={selectedCenter?.id}
+          centerMarkerStyle="building"
+          showRoutes
+          onCenterSelect={handleCenterSelect}
+        />
+      )}
+
+      <MapLegend />
+    </div>
+  );
+
+  const mobileCentersStrip = (
+    <div className="shrink-0 border-t bg-background md:hidden">
+      <div className="flex items-center justify-between px-3 py-1.5">
+        <p className="text-[11px] font-medium text-muted-foreground">
+          {loading ? "Cargando…" : `${centers.length} centros`}
+        </p>
+      </div>
+      <div className="flex gap-2 overflow-x-auto px-3 pb-2 scrollbar-none">
+        {loading
+          ? Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-20 w-44 shrink-0 animate-pulse rounded-xl bg-muted"
+              />
+            ))
+          : centers.map((center) => (
+              <div key={center.id} className="w-44 shrink-0">
+                <CenterCard
+                  center={center}
+                  compact
+                  selected={selectedCenter?.id === center.id}
+                  onSelect={() => handleCenterSelect(center)}
+                />
+              </div>
+            ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* Título compacto solo móvil */}
+      {!embedded && (
+        <div className="border-b bg-muted/20 px-3 py-2 md:hidden">
+          <p className="text-sm font-semibold">{APP_NAME}</p>
+          <p className="text-[11px] text-muted-foreground">Mapa de solidaridad</p>
+        </div>
+      )}
+
       <SearchFilters
         city={city}
         onCityChange={setCity}
@@ -84,7 +148,7 @@ export function HomeMapView({
       <DonationThanksFeed />
 
       {showLocationPrompt && (
-        <div className="relative shrink-0 px-3 pb-2 pt-1">
+        <div className="relative shrink-0 px-3 pb-1 pt-1">
           <LocationPermissionCard
             onGranted={() => setLocationCardDismissed(true)}
           />
@@ -102,44 +166,23 @@ export function HomeMapView({
       <NetworkStatusBanner message={error ?? undefined} />
 
       {!loading && centers.length === 0 && (
-        <div className="mx-3 mb-2 rounded-xl border border-dashed bg-muted/30 px-4 py-6 text-center">
-          <p className="font-medium">Aún no hay centros de acopio registrados</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Cuando se activen centros en la red, aparecerán aquí en el mapa.
+        <div className="mx-3 mb-2 rounded-xl border border-dashed bg-muted/30 px-3 py-4 text-center">
+          <p className="text-sm font-medium">Aún no hay centros registrados</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Cuando se activen, aparecerán en el mapa.
           </p>
         </div>
       )}
 
-      {/* Lista horizontal en móvil */}
-      <div className="shrink-0 border-b md:hidden">
-        <div className="flex items-center justify-between px-3 py-2">
-          <p className="text-xs font-medium text-muted-foreground">
-            {loading ? "Cargando…" : `${centers.length} centros cerca`}
-          </p>
-        </div>
-        <div className="flex gap-2 overflow-x-auto px-3 pb-3 scrollbar-none">
-          {loading
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-24 w-56 shrink-0 animate-pulse rounded-xl bg-muted"
-                />
-              ))
-            : centers.map((center) => (
-                <div key={center.id} className="w-56 shrink-0">
-                  <CenterCard
-                    center={center}
-                    compact
-                    selected={selectedCenter?.id === center.id}
-                    onSelect={() => handleCenterSelect(center)}
-                  />
-                </div>
-              ))}
-        </div>
+      {/* Móvil: mapa primero (más alto), lista abajo */}
+      <div className="flex min-h-0 flex-1 flex-col md:hidden">
+        {mapBlock}
+        {mobileCentersStrip}
       </div>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <aside className="hidden w-72 shrink-0 flex-col border-r bg-background lg:flex xl:w-80">
+      {/* Escritorio: sidebar + mapa */}
+      <div className="hidden min-h-0 flex-1 overflow-hidden md:flex">
+        <aside className="w-72 shrink-0 flex-col border-r bg-background lg:flex xl:w-80">
           <div className="border-b px-4 py-3">
             <p className="text-sm font-medium">
               {loading ? "Cargando…" : `${centers.length} centros`}
@@ -167,31 +210,7 @@ export function HomeMapView({
                 ))}
           </div>
         </aside>
-
-        <div className="relative min-h-0 min-w-0 flex-1">
-          {!sosBannerDismissed && (
-            <NearbySosAlerts
-              userPosition={position}
-              onDismiss={() => setSosBannerDismissed(true)}
-            />
-          )}
-
-          {loading ? (
-            <MapSkeleton />
-          ) : (
-            <MapLazy
-              centers={centers}
-              pledges={mapPledges}
-              sosAlerts={sosAlerts}
-              selectedCenterId={selectedCenter?.id}
-              centerMarkerStyle="building"
-              showRoutes
-              onCenterSelect={handleCenterSelect}
-            />
-          )}
-
-          <MapLegend />
-        </div>
+        {mapBlock}
       </div>
 
       {embedded && (

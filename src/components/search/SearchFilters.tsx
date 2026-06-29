@@ -24,12 +24,12 @@ export function SearchFilters({
   onNeedSlugChange,
 }: SearchFiltersProps) {
   return (
-    <div className="flex shrink-0 flex-col gap-2 border-b bg-background p-2.5 sm:flex-row sm:p-3">
-      <div className="relative flex-1">
+    <div className="flex shrink-0 flex-col gap-2 border-b bg-background p-2 sm:flex-row sm:p-3">
+      <div className="relative min-w-0 flex-1">
         <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Buscar por ciudad..."
-          className="pl-9"
+          placeholder="Ciudad..."
+          className="h-9 pl-9 text-sm sm:h-10"
           aria-label="Buscar centros por ciudad"
           value={city}
           onChange={(e) => onCityChange(e.target.value)}
@@ -41,7 +41,7 @@ export function SearchFilters({
           onNeedSlugChange(!v || v === "all" ? undefined : v)
         }
       >
-        <SelectTrigger className="w-full sm:w-52">
+        <SelectTrigger className="h-9 w-full text-sm sm:h-10 sm:w-52">
           <SelectValue placeholder="Filtrar por necesidad" />
         </SelectTrigger>
         <SelectContent>

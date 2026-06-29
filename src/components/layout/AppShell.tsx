@@ -109,8 +109,8 @@ export function BottomNav() {
   const items = NAV_ITEMS.filter((i) => i.roles.includes("donor"));
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 backdrop-blur md:hidden">
-      <div className="flex h-16 items-stretch justify-around">
+    <nav className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <div className="flex h-14 items-stretch justify-around">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -140,7 +140,9 @@ export function AppShell({
   return (
     <div className="flex min-h-dvh flex-col">
       <AppHeader />
-      <main className="flex min-h-0 flex-1 flex-col pb-16 md:pb-0">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
+        {children}
+      </main>
       <BottomNav />
     </div>
   );
